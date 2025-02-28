@@ -39,8 +39,8 @@
             const formData = new FormData();
             formData.append("file", file, file.name); // Try changing "file" to "resume" or "document"
 
-            const apiKey = "Sjmp92aJ4NLwZuaQfupqCUTtDa9UQx09";
-            const apiUrl = "https://api.apilayer.com/resume_parser/upload";
+           
+            const apiUrl = "https://resumeparser.karankhosla99.workers.dev/";
 
             try {
                 // ✅ Debug: Check formData content before sending
@@ -48,7 +48,6 @@
 
                 const response = await fetch(apiUrl, {
                     method: "POST",
-                    headers: { "apikey": apiKey },
                     body: formData
                 });
 
