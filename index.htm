@@ -7,7 +7,7 @@
 </head>
 <body>
     <h2>Upload Resume</h2>
-    <input type="file" id="resumeInput">
+    <input type="file" id="resumeInput" accept=".pdf,.doc,.docx"> <!-- ✅ Restrict to PDF/DOC/DOCX -->
     <button onclick="parseResume()">Upload & Parse</button>
     <p id="result"></p>
     <p id="aiFeedback"></p>
@@ -22,32 +22,41 @@
 
             const file = fileInput.files[0];
 
-            // ✅ Validate File Type
-            if (!["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/pdf"].includes(file.type)) {
-                alert("Please upload a DOC, DOCX, or PDF file.");
+            // ✅ Ensure the file is a supported type (PDF, DOC, DOCX)
+            const allowedTypes = [
+                "application/pdf",
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ];
+            
+            if (!allowedTypes.includes(file.type)) {
+                alert("Only PDF, DOC, or DOCX files are allowed.");
                 return;
             }
 
             const formData = new FormData();
-            formData.append("file", file, file.name);
+            formData.append("file", file, file.name); // ✅ Ensuring filename is correctly passed
 
             const apiKey = "Sjmp92aJ4NLwZuaQfupqCUTtDa9UQx09";
             const apiUrl = "https://api.apilayer.com/resume_parser/upload";
 
             try {
-                // Step 1: Upload Resume & Get Parsed Data
+                // ✅ Ensure Content-Type is set correctly
                 const response = await fetch(apiUrl, {
                     method: "POST",
                     headers: { "apikey": apiKey },
-                    body: formData
+                    body: formData // ✅ FormData ensures correct MIME type
                 });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.statusText}`);
+                }
 
                 const data = await response.json();
                 console.log("Parsed Data:", data);
 
-                // Step 2: Extract Email, Name, and Remaining Data
                 const email = extractEmail(JSON.stringify(data));
-                const name = data.name || (data.candidate_name || "Unknown");
+                const name = data.name || "Unknown";
                 const resumeData = JSON.stringify(data);
 
                 document.getElementById("result").innerText = email ? `Extracted Email: ${email}` : "No email found.";
@@ -57,7 +66,7 @@
                     return;
                 }
 
-                // Step 3: Check if Email Already Exists in Database
+                // ✅ Check if Email Exists in Database
                 const existingData = await checkExistingEmail(email);
 
                 if (existingData) {
@@ -66,11 +75,11 @@
                     
                     alert(`Resume exists! Differences detected: ${differences}`);
                     
-                    // Step 4: Send Differences to Cloudflare AI for Analysis
+                    // ✅ Send Differences to AI
                     const aiResponse = await analyzeWithAI(differences);
                     document.getElementById("aiFeedback").innerText = `AI Feedback: ${aiResponse}`;
                 } else {
-                    // Step 5: If no existing email, insert new data
+                    // ✅ If new email, insert new data
                     await sendToDatabase(email, name, resumeData);
                 }
 
@@ -133,7 +142,7 @@
 
                 for (let key in newObj) {
                     if (JSON.stringify(oldObj[key]) !== JSON.stringify(newObj[key])) {
-                        differences.push(`${key}: '${oldObj[key] || "N/A"}' → '${newObj[key]}'`);
+                        differences.push(`Changed: ${key}`);
                     }
                 }
 
@@ -152,7 +161,7 @@
                 messages: [
                     {
                         role: "system",
-                        content: "You are a resume checker who needs to verify if a candidate has previously applied to any role within your company and compare their new resume with the old resume.",
+                        content: "You are a resume checker who needs to verify if a candidate has previously applied to any role within your company and compare their new resume with the old resume",
                     },
                     {
                         role: "user",
@@ -163,7 +172,7 @@
 
             try {
                 const response = await fetch(apiUrl, {
-                    headers: { Authorization: apiKey, "Content-Type": "application/json" },
+                    headers: { Authorization: apiKey },
                     method: "POST",
                     body: JSON.stringify(input),
                 });
@@ -171,7 +180,7 @@
                 const result = await response.json();
                 console.log("AI Response:", result);
 
-                return result.result || "AI did not return a valid response.";
+                return result.choices ? result.choices[0].message.content : "AI did not return a valid response.";
             } catch (error) {
                 console.error("AI Analysis Error:", error);
                 return "Error processing AI feedback.";
