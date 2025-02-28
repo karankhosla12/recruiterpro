@@ -1,137 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Task Manager</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Parser</title>
 </head>
 <body>
-  <!-- Login Form -->
-  <div id="login-form" class="container">
-    <h1>Task Manager</h1>
-    <h2>Login</h2>
-    <form id="login">
-      <input type="email" id="login-email" placeholder="Email" required>
-      <input type="password" id="login-password" placeholder="Password" required>
-      <button type="submit">Login</button>
-    </form>
-    <p>Don't have an account? <a href="#" id="show-signup">Sign Up</a></p>
-  </div>
+    <h2>U Provide a URL for resume </h2>
 
-  <!-- Signup Form -->
-  <div id="signup-form" class="container" style="display: none;">
-    <h1>Task Manager</h1>
-    <h2>Sign Up</h2>
-    <form id="signup">
-      <input type="text" id="signup-username" placeholder="Username" required>
-      <input type="email" id="signup-email" placeholder="Email" required>
-      <input type="password" id="signup-password" placeholder="Password" required>
-      <input type="text" id="signup-phone" placeholder="Phone Number" required>
-      <button type="submit">Sign Up</button>
-    </form>
-    <p>Already have an account? <a href="#" id="show-login">Login</a></p>
-  </div>
+   
 
-  <!-- Dashboard -->
-  <div id="dashboard" style="display: none;">
-    <header>
-      <h1>Dashboard</h1>
-      <nav>
-        <button id="create-task-btn">Create Task</button>
-        <button id="create-project-btn">Create Project</button>
-        <button id="list-projects-btn">List All Projects</button>
-      </nav>
-    </header>
+    <!-- ✅ URL Upload -->
+    <input type="text" id="resumeUrl" placeholder="Enter Resume URL">
+    <button onclick="parseResumeUrl()">Parse URL</button>
 
-    <!-- Filter Form -->
-    <div id="filter-form">
-      <h2>Filter Tasks</h2>
-      <form id="filter-form">
-        <input type="text" id="filter-project-id" placeholder="Project ID">
-        <input type="email" id="filter-assigned-by" placeholder="Assigned By (Email)">
-        <input type="email" id="filter-assigned-to" placeholder="Assigned To (Email)">
-        <select id="filter-status">
-          <option value="">All Statuses</option>
-          <option value="0">Open</option>
-          <option value="1">In Progress</option>
-          <option value="2">Completed</option>
-        </select>
-        <button type="submit">Apply Filters</button>
-      </form>
-    </div>
+    <p id="result"></p>
+    <p id="aiFeedback"></p>
 
-    <!-- Tasks List -->
-    <div id="tasks-list"></div>
+    <script>
+async function parseResumeUrl() {
+    const resumeUrl = document.getElementById('resumeUrl').value.trim();
+    if (!resumeUrl) {
+        alert("Please enter a valid URL.");
+        return;
+    }
 
-    <!-- Projects List -->
-    <div id="projects-list" style="display: none;"></div>
-  </div>
+    // ✅ Use Cloudflare Worker instead of direct API call
+    const apiUrl = `https://resumeparser.karankhosla99.workers.dev/?url=${encodeURIComponent(resumeUrl)}`;
 
-  <!-- Create Task Modal -->
-  <div id="create-task-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h2>Create Task</h2>
-      <form id="create-task-form">
-        <input type="text" id="task-name" placeholder="Task Name" required>
-        <textarea id="task-description" placeholder="Task Description" required></textarea>
-        <input type="email" id="assigned-to" placeholder="Assigned To (Email)" required>
-        <input type="date" id="deadline" required>
-        <input type="text" id="project-id" placeholder="Project ID" required>
-        <button type="submit">Create</button>
-      </form>
-    </div>
-  </div>
+    try {
+        const response = await fetch(apiUrl, { method: "GET" });
 
-  <!-- Create Project Modal -->
-  <div id="create-project-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h2>Create Project</h2>
-      <form id="create-project-form">
-        <input type="text" id="project-name" placeholder="Project Name" required>
-        <textarea id="project-description" placeholder="Project Description" required></textarea>
-        <button type="submit">Create</button>
-      </form>
-    </div>
-  </div>
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
+        }
 
-  <!-- Edit Task Modal -->
-  <div id="edit-task-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h2>Edit Task</h2>
-      <form id="edit-task-form">
-        <input type="hidden" id="edit-task-id">
-        <input type="text" id="edit-task-name" placeholder="Task Name" required>
-        <textarea id="edit-task-description" placeholder="Task Description" required></textarea>
-        <input type="email" id="edit-assigned-to" placeholder="Assigned To (Email)" required>
-        <input type="date" id="edit-deadline" required>
-        <select id="edit-status">
-          <option value="0">Open</option>
-          <option value="1">In Progress</option>
-          <option value="2">Completed</option>
-        </select>
-        <button type="submit">Update</button>
-      </form>
-    </div>
-  </div>
+        const data = await response.json();
+        console.log("Parsed Data from URL:", data);
+        alert("Resume URL parsed successfully!");
 
-  <!-- Edit Project Modal -->
-  <div id="edit-project-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h2>Edit Project</h2>
-      <form id="edit-project-form">
-        <input type="hidden" id="edit-project-id">
-        <input type="text" id="edit-project-name" placeholder="Project Name" required>
-        <textarea id="edit-project-description" placeholder="Project Description" required></textarea>
-        <button type="submit">Update</button>
-      </form>
-    </div>
-  </div>
+        handleParsedData(data);
+    } catch (error) {
+        console.error("API error:", error);
+        alert("Error parsing resume from URL. Check console for details.");
+    }
+}
 
-  <script src="app.js"></script>
+
+        function handleParsedData(data) {
+            const email = extractEmail(JSON.stringify(data));
+            const name = data.name || "Unknown";
+            const resumeData = JSON.stringify(data);
+
+            document.getElementById("result").innerText = email ? `Extracted Email: ${email}` : "No email found.";
+
+            if (!email) {
+                alert("Could not extract an email. Please check the resume.");
+                return;
+            }
+
+            checkExistingEmail(email).then(existingData => {
+                if (existingData) {
+                    console.log("Existing Data Found:", existingData);
+                    const differences = compareData(existingData.data, resumeData);
+
+                    alert(`Resume exists! Differences detected: ${differences}`);
+
+                    analyzeWithAI(differences).then(aiResponse => {
+                        document.getElementById("aiFeedback").innerText = `AI Feedback: ${aiResponse}`;
+                    });
+                } else {
+                    sendToDatabase(email, name, resumeData);
+                }
+            });
+        }
+
+        function extractEmail(text) {
+            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+            const match = text.match(emailRegex);
+            return match ? match[0] : null;
+        }
+
+        async function checkExistingEmail(email) {
+            const apiUrl = `https://resumecheck.karankhosla99.workers.dev?email=${encodeURIComponent(email)}`;
+
+            try {
+                const response = await fetch(apiUrl, { method: "GET" });
+                const data = await response.json();
+
+                return data.length > 0 ? data[0] : null;
+            } catch (error) {
+                console.error("Error checking existing email:", error);
+                return null;
+            }
+        }
+
+        async function sendToDatabase(email, name, data) {
+            const apiUrl = "https://resumecheck.karankhosla99.workers.dev";
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, name, data })
+                });
+
+                const result = await response.json();
+                console.log("Database Response:", result);
+
+                if (response.ok) {
+                    alert("Resume data saved successfully!");
+                } else {
+                    alert("Failed to save data.");
+                }
+            } catch (error) {
+                console.error("Database error:", error);
+                alert("Error sending data to database.");
+            }
+        }
+
+        function compareData(oldData, newData) {
+            try {
+                const oldObj = JSON.parse(oldData);
+                const newObj = JSON.parse(newData);
+
+                let differences = [];
+
+                for (let key in newObj) {
+                    if (JSON.stringify(oldObj[key]) !== JSON.stringify(newObj[key])) {
+                        differences.push(`Changed: ${key}`);
+                    }
+                }
+
+                return differences.length > 0 ? differences.join(", ") : "No differences found.";
+            } catch (error) {
+                console.error("Error comparing data:", error);
+                return "Error comparing data.";
+            }
+        }
+
+        async function analyzeWithAI(differences) {
+            const apiUrl = "https://api.cloudflare.com/client/v4/accounts/52010c0e26145cee4deb15ab385f4249/ai/run/@cf/meta/llama-3-8b-instruct";
+            const apiKey = "Bearer WAzfM3ligvLpalUxBumUaZF6fSFlq9-6ZaN096l7";
+
+            const input = {
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a resume checker who needs to verify if a candidate has previously applied to any role within your company and compare their new resume with the old resume",
+                    },
+                    {
+                        role: "user",
+                        content: `The difference in the candidate's old resume and new resume is: ${differences}`,
+                    },
+                ],
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    headers: { Authorization: apiKey },
+                    method: "POST",
+                    body: JSON.stringify(input),
+                });
+
+                const result = await response.json();
+                console.log("AI Response:", result);
+
+                return result.choices ? result.choices[0].message.content : "AI did not return a valid response.";
+            } catch (error) {
+                console.error("AI Analysis Error:", error);
+                return "Error processing AI feedback.";
+            }
+        }
+    </script>
 </body>
 </html>
