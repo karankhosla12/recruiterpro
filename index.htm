@@ -22,26 +22,30 @@
 
             const file = fileInput.files[0];
 
-            // ✅ Ensure the file is a supported type (PDF, DOC, DOCX)
-            const allowedTypes = [
+            // ✅ Ensure file has correct extension and MIME type
+            const allowedExtensions = ["pdf", "doc", "docx"];
+            const fileExtension = file.name.split(".").pop().toLowerCase();
+            const allowedMimeTypes = [
                 "application/pdf",
                 "application/msword",
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             ];
 
-            if (!allowedTypes.includes(file.type)) {
-                alert("Only PDF, DOC, or DOCX files are allowed.");
+            if (!allowedExtensions.includes(fileExtension) || !allowedMimeTypes.includes(file.type)) {
+                alert("Invalid file format. Only PDF, DOC, or DOCX files are supported.");
                 return;
             }
 
             const formData = new FormData();
-            formData.append("file", file, file.name); // ✅ Ensure file name is included
+            formData.append("file", file, file.name); // Try changing "file" to "resume" or "document"
 
             const apiKey = "Sjmp92aJ4NLwZuaQfupqCUTtDa9UQx09";
             const apiUrl = "https://api.apilayer.com/resume_parser/upload";
 
             try {
-                // ✅ DO NOT set `Content-Type`, `FormData` does it automatically
+                // ✅ Debug: Check formData content before sending
+                console.log("Sending file:", file.name, "MIME type:", file.type);
+
                 const response = await fetch(apiUrl, {
                     method: "POST",
                     headers: { "apikey": apiKey },
@@ -49,7 +53,7 @@
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text(); // ✅ Read error response for debugging
+                    const errorText = await response.text();
                     throw new Error(`API Error: ${response.status} - ${errorText}`);
                 }
 
