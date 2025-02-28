@@ -18,38 +18,35 @@
     <p id="aiFeedback"></p>
 
     <script>
+async function parseResumeUrl() {
+    const resumeUrl = document.getElementById('resumeUrl').value.trim();
+    if (!resumeUrl) {
+        alert("Please enter a valid URL.");
+        return;
+    }
 
-        async function parseResumeUrl() {
-            const resumeUrl = document.getElementById('resumeUrl').value.trim();
-            if (!resumeUrl) {
-                alert("Please enter a valid URL.");
-                return;
-            }
+    // ✅ Use Cloudflare Worker instead of direct API call
+    const apiUrl = `https://resume-proxy.karankhosla99.workers.dev?url=${encodeURIComponent(resumeUrl)}`;
 
-            const apiUrl = `https://api.apilayer.com/resume_parser/url?url=${encodeURIComponent(resumeUrl)}`;
-            const apiKey = "Sjmp92aJ4NLwZuaQfupqCUTtDa9UQx09";
+    try {
+        const response = await fetch(apiUrl, { method: "GET" });
 
-            try {
-                const response = await fetch(apiUrl, {
-                    method: "GET",
-                    headers: { "apikey": apiKey }
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`API Error: ${response.status} - ${errorText}`);
-                }
-
-                const data = await response.json();
-                console.log("Parsed Data from URL:", data);
-                alert("Resume URL parsed successfully!");
-
-                handleParsedData(data);
-            } catch (error) {
-                console.error("API error:", error);
-                alert("Error parsing resume from URL. Check console for details.");
-            }
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
+
+        const data = await response.json();
+        console.log("Parsed Data from URL:", data);
+        alert("Resume URL parsed successfully!");
+
+        handleParsedData(data);
+    } catch (error) {
+        console.error("API error:", error);
+        alert("Error parsing resume from URL. Check console for details.");
+    }
+}
+
 
         function handleParsedData(data) {
             const email = extractEmail(JSON.stringify(data));
