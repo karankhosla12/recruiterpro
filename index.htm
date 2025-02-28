@@ -13,47 +13,55 @@
     <p id="aiFeedback"></p>
 
     <script>
-        async function parseResume() {
-            const fileInput = document.getElementById('resumeInput');
-            if (fileInput.files.length === 0) {
-                alert("Please select a file.");
-                return;
-            }
+async function parseResume() {
+    const fileInput = document.getElementById('resumeInput');
+    if (fileInput.files.length === 0) {
+        alert("Please select a file.");
+        return;
+    }
 
-            const file = fileInput.files[0];
+    const file = fileInput.files[0];
 
-            // ✅ Ensure the file is a supported type (PDF, DOC, DOCX)
-            const allowedTypes = [
-                "application/pdf",
-                "application/msword",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            ];
-            
-            if (!allowedTypes.includes(file.type)) {
-                alert("Only PDF, DOC, or DOCX files are allowed.");
-                return;
-            }
+    // ✅ Ensure the file is a supported type (PDF, DOC, DOCX)
+    const allowedTypes = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+        alert("Only PDF, DOC, or DOCX files are allowed.");
+        return;
+    }
 
-            const formData = new FormData();
-            formData.append("file", file, file.name); // ✅ Ensuring filename is correctly passed
+    const formData = new FormData();
+    formData.append("file", file, file.name); // ✅ Ensure file name is included
 
-            const apiKey = "Sjmp92aJ4NLwZuaQfupqCUTtDa9UQx09";
-            const apiUrl = "https://api.apilayer.com/resume_parser/upload";
+    const apiKey = "Sjmp92aJ4NLwZuaQfupqCUTtDa9UQx09";
+    const apiUrl = "https://api.apilayer.com/resume_parser/upload";
 
-            try {
-                // ✅ Ensure Content-Type is set correctly
-                const response = await fetch(apiUrl, {
-                    method: "POST",
-                    headers: { "apikey": apiKey },
-                    body: formData // ✅ FormData ensures correct MIME type
-                });
+    try {
+        // ✅ DO NOT set `Content-Type`, `FormData` does it automatically
+        const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "apikey": apiKey },
+            body: formData
+        });
 
-                if (!response.ok) {
-                    throw new Error(`API Error: ${response.statusText}`);
-                }
+        if (!response.ok) {
+            const errorText = await response.text(); // ✅ Read error response for debugging
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
+        }
 
-                const data = await response.json();
-                console.log("Parsed Data:", data);
+        const data = await response.json();
+        console.log("Parsed Data:", data);
+        alert("Resume uploaded successfully!");
+
+    } catch (error) {
+        console.error("API error:", error);
+        alert("Error parsing resume. Check console for details.");
+    }
+}
 
                 const email = extractEmail(JSON.stringify(data));
                 const name = data.name || "Unknown";
