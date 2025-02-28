@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Parser</title>
+</head>
+<body>
+    <h2>Upload Resume</h2>
+    <input type="file" id="resumeInput">
+    <button onclick="parseResume()">Upload & Parse</button>
+    <p id="result"></p>
+    <p id="aiFeedback"></p>
+
+    <script>
+        async function parseResume() {
+            const fileInput = document.getElementById('resumeInput');
+            if (fileInput.files.length === 0) {
+                alert("Please select a file.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const apiKey = "Sjmp92aJ4NLwZuaQfupqCUTtDa9UQx09";
+            const apiUrl = "https://api.apilayer.com/resume_parser/upload";
+
+            try {
+                // Step 1: Upload Resume & Get Parsed Data
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: { "apikey": apiKey },
+                    body: formData
+                });
+
+                const data = await response.json();
+                console.log("Parsed Data:", data);
+
+                // Step 2: Extract Email, Name, and Remaining Data
+                const email = extractEmail(JSON.stringify(data));
+                const name = data.name || "Unknown";
+                const resumeData = JSON.stringify(data);
+
+                document.getElementById("result").innerText = email ? `Extracted Email: ${email}` : "No email found.";
+
+                if (!email) {
+                    alert("Could not extract an email. Please check the resume.");
+                    return;
+                }
+
+                // Step 3: Check if Email Already Exists in Database
+                const existingData = await checkExistingEmail(email);
+
+                if (existingData) {
+                    console.log("Existing Data Found:", existingData);
+                    const differences = compareData(existingData.data, resumeData);
+                    
+                    alert(`Resume exists! Differences detected: ${differences}`);
+                    
+                    // Step 4: Send Differences to Cloudflare AI for Analysis
+                    const aiResponse = await analyzeWithAI(differences);
+                    document.getElementById("aiFeedback").innerText = `AI Feedback: ${aiResponse}`;
+                } else {
+                    // Step 5: If no existing email, insert new data
+                    await sendToDatabase(email, name, resumeData);
+                }
+
+            } catch (error) {
+                console.error("API error:", error);
+                alert("Error parsing resume.");
+            }
+        }
+
+        function extractEmail(text) {
+            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+            const match = text.match(emailRegex);
+            return match ? match[0] : null;
+        }
+
+        async function checkExistingEmail(email) {
+            const apiUrl = `https://resumecheck.karankhosla99.workers.dev?email=${encodeURIComponent(email)}`;
+            
+            try {
+                const response = await fetch(apiUrl, { method: "GET" });
+                const data = await response.json();
+
+                return data.length > 0 ? data[0] : null;
+            } catch (error) {
+                console.error("Error checking existing email:", error);
+                return null;
+            }
+        }
+
+        async function sendToDatabase(email, name, data) {
+            const apiUrl = "https://resumecheck.karankhosla99.workers.dev";
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, name, data })
+                });
+
+                const result = await response.json();
+                console.log("Database Response:", result);
+
+                if (response.ok) {
+                    alert("Resume data saved successfully!");
+                } else {
+                    alert("Failed to save data.");
+                }
+            } catch (error) {
+                console.error("Database error:", error);
+                alert("Error sending data to database.");
+            }
+        }
+
+        function compareData(oldData, newData) {
+            try {
+                const oldObj = JSON.parse(oldData);
+                const newObj = JSON.parse(newData);
+
+                let differences = [];
+
+                for (let key in newObj) {
+                    if (JSON.stringify(oldObj[key]) !== JSON.stringify(newObj[key])) {
+                        differences.push(`Changed: ${key}`);
+                    }
+                }
+
+                return differences.length > 0 ? differences.join(", ") : "No differences found.";
+            } catch (error) {
+                console.error("Error comparing data:", error);
+                return "Error comparing data.";
+            }
+        }
+
+        async function analyzeWithAI(differences) {
+            const apiUrl = "https://api.cloudflare.com/client/v4/accounts/52010c0e26145cee4deb15ab385f4249/ai/run/@cf/meta/llama-3-8b-instruct";
+            const apiKey = "Bearer WAzfM3ligvLpalUxBumUaZF6fSFlq9-6ZaN096l7";
+
+            const input = {
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a resume checker who needs to verify if a candidate has previously applied to any role within your company and compare their new resume with the old resume",
+                    },
+                    {
+                        role: "user",
+                        content: `The difference in the candidate's old resume and new resume is: ${differences}`,
+                    },
+                ],
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    headers: { Authorization: apiKey },
+                    method: "POST",
+                    body: JSON.stringify(input),
+                });
+
+                const result = await response.json();
+                console.log("AI Response:", result);
+
+                return result.choices ? result.choices[0].message.content : "AI did not return a valid response.";
+            } catch (error) {
+                console.error("AI Analysis Error:", error);
+                return "Error processing AI feedback.";
+            }
+        }
+    </script>
+</body>
+</html>
