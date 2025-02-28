@@ -21,8 +21,15 @@
             }
 
             const file = fileInput.files[0];
+
+            // ✅ Validate File Type
+            if (!["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/pdf"].includes(file.type)) {
+                alert("Please upload a DOC, DOCX, or PDF file.");
+                return;
+            }
+
             const formData = new FormData();
-            formData.append("file", file);
+            formData.append("file", file, file.name);
 
             const apiKey = "Sjmp92aJ4NLwZuaQfupqCUTtDa9UQx09";
             const apiUrl = "https://api.apilayer.com/resume_parser/upload";
@@ -40,7 +47,7 @@
 
                 // Step 2: Extract Email, Name, and Remaining Data
                 const email = extractEmail(JSON.stringify(data));
-                const name = data.name || "Unknown";
+                const name = data.name || (data.candidate_name || "Unknown");
                 const resumeData = JSON.stringify(data);
 
                 document.getElementById("result").innerText = email ? `Extracted Email: ${email}` : "No email found.";
@@ -126,7 +133,7 @@
 
                 for (let key in newObj) {
                     if (JSON.stringify(oldObj[key]) !== JSON.stringify(newObj[key])) {
-                        differences.push(`Changed: ${key}`);
+                        differences.push(`${key}: '${oldObj[key] || "N/A"}' → '${newObj[key]}'`);
                     }
                 }
 
@@ -145,7 +152,7 @@
                 messages: [
                     {
                         role: "system",
-                        content: "You are a resume checker who needs to verify if a candidate has previously applied to any role within your company and compare their new resume with the old resume",
+                        content: "You are a resume checker who needs to verify if a candidate has previously applied to any role within your company and compare their new resume with the old resume.",
                     },
                     {
                         role: "user",
@@ -156,7 +163,7 @@
 
             try {
                 const response = await fetch(apiUrl, {
-                    headers: { Authorization: apiKey },
+                    headers: { Authorization: apiKey, "Content-Type": "application/json" },
                     method: "POST",
                     body: JSON.stringify(input),
                 });
@@ -164,7 +171,7 @@
                 const result = await response.json();
                 console.log("AI Response:", result);
 
-                return result.choices ? result.choices[0].message.content : "AI did not return a valid response.";
+                return result.result || "AI did not return a valid response.";
             } catch (error) {
                 console.error("AI Analysis Error:", error);
                 return "Error processing AI feedback.";
