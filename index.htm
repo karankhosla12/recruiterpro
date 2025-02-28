@@ -26,7 +26,7 @@ async function parseResumeUrl() {
     }
 
     // ✅ Use Cloudflare Worker instead of direct API call
-    const apiUrl = `https://resume-proxy.karankhosla99.workers.dev?url=${encodeURIComponent(resumeUrl)}`;
+    const apiUrl = `https://resumeparser.karankhosla99.workers.dev/?url=${encodeURIComponent(resumeUrl)}`;
 
     try {
         const response = await fetch(apiUrl, { method: "GET" });
